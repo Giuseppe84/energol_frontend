@@ -7,12 +7,13 @@ import Verify2FA from './pages/auth/Verify2FA';
 import Enable2FA from './pages/auth/Enable2FA';
 import DashboardPage from './pages/DashboardPage';
 import ClientsPage from './pages/ClientsPage';
+import ClientDetailPage from './pages/ClientDetailPage';
 import SubjectsPage from './pages/SubjectsPage';
 import ServicesPage from './pages/ServicesPage';
 import WorksPage from './pages/WorksPage';
 import PaymentsPage from './pages/PaymentsPage';
 import PropertiesPage from './pages/PropertiesPage';
-
+import SubjectDetailPage from './pages/SubjectDetailPage';
 
 
 function App() {
@@ -25,12 +26,14 @@ function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/verify2FA" element={<Verify2FA />} />
           <Route path="/enable2FA" element={<Enable2FA />} />
+          <Route path="/clients/:id" element={<ClientDetailPage />} />
           <Route path="/clients" element={<ClientsPage />} />
+          <Route path="/subjects/:id" element={<SubjectDetailPage />} />
           <Route path="/subjects" element={<SubjectsPage />} />
           <Route path="/services" element={<ServicesPage />} />
           <Route path="/works" element={<WorksPage />} />
           <Route path="/payments" element={<PaymentsPage />} />
-                    <Route path="/properties" element={<PropertiesPage />} />
+          <Route path="/properties" element={<PropertiesPage />} />
           <Route
             path="/"
             element={

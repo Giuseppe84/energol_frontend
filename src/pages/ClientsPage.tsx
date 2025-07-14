@@ -23,6 +23,7 @@ import MainLayout from '../layout/MainLayout';
 import { useEffect, useState } from 'react';
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
+import { useNavigate } from 'react-router-dom';
 
 type Client = {
   id: string;
@@ -43,6 +44,8 @@ export default function ClientsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     // dati mock
@@ -122,7 +125,12 @@ export default function ClientsPage() {
             <TableBody>
               {filteredClients.map((client) => (
                 <TableRow key={client.id}>
-                  <TableCell>{client.name}</TableCell>
+                  <TableCell
+                    sx={{ cursor: 'pointer', color: 'primary.main' }}
+                    onClick={() => navigate(`/clients/${client.id}`)}
+                  >
+                    {client.name}
+                  </TableCell>
                   <TableCell>{client.taxId}</TableCell>
                   <TableCell>{client.createdAt}</TableCell>
                   <TableCell>
