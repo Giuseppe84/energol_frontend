@@ -26,6 +26,9 @@ import MainLayout from '../layout/MainLayout';
 import { useEffect, useState } from 'react';
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
+import { useNavigate } from 'react-router-dom';
+
+
 
 interface Work {
   id: string;
@@ -46,6 +49,7 @@ const WorkSchema = Yup.object().shape({
 const statusOptions = ['attiva', 'completata', 'in attesa'];
 
 export default function WorksPage() {
+    const navigate = useNavigate();
   const [works, setWorks] = useState<Work[]>([]);
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -159,7 +163,12 @@ export default function WorksPage() {
             <TableBody>
               {filteredWorks.map(work => (
                 <TableRow key={work.id}>
-                  <TableCell>{work.title}</TableCell>
+                 <TableCell
+  sx={{ cursor: 'pointer', color: 'primary.main' }}
+  onClick={() => navigate(`/works/${work.id}`)}
+>
+  {work.title}
+</TableCell>
                   <TableCell>{work.subject}</TableCell>
                   <TableCell>{work.service}</TableCell>
                   <TableCell>{work.status}</TableCell>

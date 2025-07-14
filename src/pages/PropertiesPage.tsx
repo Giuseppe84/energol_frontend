@@ -25,6 +25,9 @@ import MainLayout from '../layout/MainLayout';
 import { useEffect, useState } from 'react';
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
+import { useNavigate } from 'react-router-dom';
+
+
 
 interface Property {
   id: string;
@@ -53,6 +56,8 @@ export default function PropertiesPage() {
   });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [propertyToDelete, setPropertyToDelete] = useState<Property | null>(null);
+  const navigate = useNavigate();
+
 
   useEffect(() => {
     setProperties([
@@ -149,7 +154,12 @@ export default function PropertiesPage() {
             <TableBody>
               {filteredProperties.map(property => (
                 <TableRow key={property.id}>
-                  <TableCell>{property.address}</TableCell>
+                  <TableCell
+  sx={{ cursor: 'pointer', color: 'primary.main' }}
+  onClick={() => navigate(`/properties/${property.id}`)}
+>
+  {property.address}
+</TableCell>
                   <TableCell>{property.city}</TableCell>
                   <TableCell>{property.client}</TableCell>
                   <TableCell>{property.createdAt}</TableCell>

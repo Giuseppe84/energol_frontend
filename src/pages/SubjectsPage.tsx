@@ -41,7 +41,7 @@ const SubjectSchema = Yup.object().shape({
     taxId: Yup.string().required('Il codice fiscale è obbligatorio'),
     client: Yup.string().required('Il cliente è obbligatorio'),
 });
-const navigate = useNavigate();
+
 
 
 export default function SubjectsPage() {
@@ -58,7 +58,7 @@ export default function SubjectsPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [subjectToDelete, setSubjectToDelete] = useState<Subject | null>(null);
-
+    const navigate = useNavigate();
     useEffect(() => {
         setSubjects([
             {
@@ -157,8 +157,7 @@ export default function SubjectsPage() {
                     <Table size="small">
                         <TableHead>
                             <TableRow>
-                                <TableCell>Nome</TableCell>
-                                <TableCell>Cognome</TableCell>
+                                <TableCell>Soggetto</TableCell>
                                 <TableCell>Codice Fiscale</TableCell>
                                 <TableCell>Cliente</TableCell>
                                 <TableCell>Data creazione</TableCell>
