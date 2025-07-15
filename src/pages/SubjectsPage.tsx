@@ -24,6 +24,7 @@ import { useEffect, useState } from 'react';
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
 import { useNavigate } from 'react-router-dom';
+import { createOrUpdateSubject, fetchSubjects } from '../api/subjects';
 
 
 type Subject = {
@@ -31,7 +32,7 @@ type Subject = {
     firstName: string;
     lastName: string;
     taxId: string;
-    client: string;
+    client: { firstName: string; lastName: string } | string;
     createdAt: string;
 };
 
@@ -60,32 +61,16 @@ export default function SubjectsPage() {
     const [subjectToDelete, setSubjectToDelete] = useState<Subject | null>(null);
     const navigate = useNavigate();
     useEffect(() => {
-        setSubjects([
-            {
-                id: '1',
-                firstName: 'Luca',
-                lastName: 'Bianchi',
-                taxId: 'BNCLCU90E10H501P',
-                client: 'Mario Rossi',
-                createdAt: '2025-07-01',
-            },
-            {
-                id: '2',
-                firstName: 'Sara',
-                lastName: 'Verdi',
-                taxId: 'VRDSRA85C45H501R',
-                client: 'Giulia Verdi',
-                createdAt: '2025-06-20',
-            },
-            {
-                id: '3',
-                firstName: 'Paolo',
-                lastName: 'Neri',
-                taxId: 'NRRPLL80D01H501U',
-                client: 'Alessandro Bianchi',
-                createdAt: '2025-06-10',
-            },
-        ]);
+        const loadSubjects = async () => {
+            try {
+                const data = await fetchSubjects();
+                console.log('Fetched subjects:', data);
+                setSubjects(data);
+            } catch (error) {
+                console.error('Errore nel caricamento dei soggetti:', error);
+            }
+        };
+        loadSubjects();
     }, []);
 
     const handleOpen = () => setOpen(true);
@@ -127,7 +112,8 @@ export default function SubjectsPage() {
         subject.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         subject.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         subject.taxId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        subject.client.toLowerCase().includes(searchTerm.toLowerCase())
+        subject.client.firstName.toLowerCase().includes(searchTerm.toLowerCase())||
+        subject.client.lastName.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
@@ -174,7 +160,7 @@ export default function SubjectsPage() {
                                         {subject.firstName} {subject.lastName}
                                     </TableCell>
                                     <TableCell>{subject.taxId}</TableCell>
-                                    <TableCell>{subject.client}</TableCell>
+                                    <TableCell>{subject.client.firstName} {subject.client.lastName}</TableCell>
                                     <TableCell>{subject.createdAt}</TableCell>
                                     <TableCell>
                                         <IconButton onClick={() => handleEdit(subject)} size="small">
@@ -197,18 +183,27 @@ export default function SubjectsPage() {
                         initialValues={newSubject}
                         validationSchema={SubjectSchema}
                         enableReinitialize
-                        onSubmit={(values) => {
+                        onSubmit={async(values) => {
                             if (values.id) {
                                 setSubjects(prev =>
                                     prev.map(s => (s.id === values.id ? { ...s, ...values } : s))
                                 );
                             } else {
-                                const newEntry = {
-                                    ...values,
-                                    id: (subjects.length + 1).toString(),
-                                    createdAt: new Date().toISOString().split('T')[0],
-                                };
-                                setSubjects([...subjects, newEntry]);
+                                try {
+                                    const payload = {
+                                        firstName: values.firstName,
+                                        lastName: values.lastName,
+                                        taxId: values.taxId,
+                                        clientId: 'ID_DEL_CLIENT_CORRETTO', // da ottenere dinamicamente
+                                    };
+
+                                    await createOrUpdateSubject(payload);
+                                    handleClose();
+                                    // Ricarica o aggiorna lo stato
+                                } catch (error) {
+                                    console.error('Errore durante il salvataggio del soggetto:', error);
+                                }
+                                setSubjects([...subjects, { ...values, id: String(subjects.length + 1), createdAt: new Date().toISOString() }]);
                             }
                             handleClose();
                         }}

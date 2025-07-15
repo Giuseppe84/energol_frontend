@@ -27,6 +27,7 @@ import { useEffect, useState } from 'react';
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
 import { useNavigate } from 'react-router-dom';
+import { fetchWorks, createOrUpdateWork, deleteWork } from '../api/works';
 
 
 
@@ -49,7 +50,7 @@ const WorkSchema = Yup.object().shape({
 const statusOptions = ['attiva', 'completata', 'in attesa'];
 
 export default function WorksPage() {
-    const navigate = useNavigate();
+  const navigate = useNavigate();
   const [works, setWorks] = useState<Work[]>([]);
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -65,24 +66,15 @@ export default function WorksPage() {
   const [workToDelete, setWorkToDelete] = useState<Work | null>(null);
 
   useEffect(() => {
-    setWorks([
-      {
-        id: '1',
-        title: 'Pratica APE villa bifamiliare',
-        subject: 'Mario Rossi',
-        service: 'Certificazione energetica',
-        status: 'attiva',
-        createdAt: '2025-07-01',
-      },
-      {
-        id: '2',
-        title: 'Pratica ristrutturazione appartamento',
-        subject: 'Giulia Verdi',
-        service: 'Progetto architettonico',
-        status: 'completata',
-        createdAt: '2025-06-25',
-      },
-    ]);
+    const loadWorks = async () => {
+      try {
+        const data = await fetchWorks();
+        setWorks(data);
+      } catch (error) {
+        console.error('Errore nel caricamento delle pratiche:', error);
+      }
+    };
+    loadWorks();
   }, []);
 
   const handleOpen = () => setOpen(true);
@@ -113,9 +105,13 @@ export default function WorksPage() {
     setDeleteDialogOpen(false);
   };
 
-  const handleDeleteConfirm = () => {
-    if (workToDelete) {
+  const handleDeleteConfirm = async () => {
+    if (!workToDelete) return;
+    try {
+      await deleteWork(workToDelete.id);
       setWorks(prev => prev.filter(w => w.id !== workToDelete.id));
+    } catch (error) {
+      console.error('Errore durante l\'eliminazione della pratica:', error);
     }
     handleDeleteCancel();
   };
@@ -163,12 +159,12 @@ export default function WorksPage() {
             <TableBody>
               {filteredWorks.map(work => (
                 <TableRow key={work.id}>
-                 <TableCell
-  sx={{ cursor: 'pointer', color: 'primary.main' }}
-  onClick={() => navigate(`/works/${work.id}`)}
->
-  {work.title}
-</TableCell>
+                  <TableCell
+                    sx={{ cursor: 'pointer', color: 'primary.main' }}
+                    onClick={() => navigate(`/works/${work.id}`)}
+                  >
+                    {work.title}
+                  </TableCell>
                   <TableCell>{work.subject}</TableCell>
                   <TableCell>{work.service}</TableCell>
                   <TableCell>{work.status}</TableCell>
@@ -193,18 +189,17 @@ export default function WorksPage() {
             initialValues={newWork}
             validationSchema={WorkSchema}
             enableReinitialize
-            onSubmit={(values) => {
-              if (values.id) {
-                setWorks(prev => prev.map(w => (w.id === values.id ? { ...w, ...values } : w)));
-              } else {
-                const newEntry = {
-                  ...values,
-                  id: (works.length + 1).toString(),
-                  createdAt: new Date().toISOString().split('T')[0],
-                };
-                setWorks([...works, newEntry]);
+             onSubmit={async (values) => {
+              try {
+                const saved = await createOrUpdateWork(values);
+                const updated = values.id
+                  ? works.map(w => (w.id === saved.id ? saved : w))
+                  : [...works, saved];
+                setWorks(updated);
+                handleClose();
+              } catch (error) {
+                console.error('Errore durante il salvataggio della pratica:', error);
               }
-              handleClose();
             }}
           >
             {({ values, errors, touched, handleChange }) => (

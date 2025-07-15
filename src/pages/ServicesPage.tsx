@@ -24,15 +24,13 @@ import { useEffect, useState } from 'react';
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
 import { useNavigate } from 'react-router-dom';
+import { fetchServices, createOrUpdateService, deleteService } from '../api/services';
 
 
 interface Service {
     id: string;
-    title: string;
+    name: string;
     description: string;
-    category: string;
-    price: number;
-    days: number;
     createdAt: string;
 }
 
@@ -62,32 +60,21 @@ export default function ServicesPage() {
     const navigate = useNavigate();
 
     useEffect(() => {
-        setServices([
-            {
-                id: '1',
-                title: 'Progetto architettonico',
-                description: 'Progettazione edificio residenziale',
-                category: 'Architettura',
-                price: 1500,
-                days: 15,
-                createdAt: '2025-07-01',
-            },
-            {
-                id: '2',
-                title: 'Certificazione energetica',
-                description: 'APE per abitazione privata',
-                category: 'Energetica',
-                price: 250,
-                days: 3,
-                createdAt: '2025-06-25',
-            },
-        ]);
+      const loadServices = async () => {
+        try {
+          const data = await fetchServices();
+          setServices(data);
+        } catch (error) {
+          console.error('Errore nel caricamento dei servizi:', error);
+        }
+      };
+      loadServices();
     }, []);
 
     const handleOpen = () => setOpen(true);
     const handleClose = () => {
         setOpen(false);
-        setNewService({ id: '', title: '', description: '', category: '', price: 0, days: 0, createdAt: '' });
+        setNewService({ id: '', name: '', description: '',  createdAt: '' });
     };
 
     const handleEdit = (service: Service) => {
@@ -105,16 +92,20 @@ export default function ServicesPage() {
         setDeleteDialogOpen(false);
     };
 
-    const handleDeleteConfirm = () => {
-        if (serviceToDelete) {
-            setServices(prev => prev.filter(s => s.id !== serviceToDelete.id));
-        }
-        handleDeleteCancel();
+    const handleDeleteConfirm = async () => {
+      if (!serviceToDelete) return;
+      try {
+        await deleteService(serviceToDelete.id);
+        setServices(prev => prev.filter(s => s.id !== serviceToDelete.id));
+      } catch (error) {
+        console.error('Errore durante l\'eliminazione del servizio:', error);
+      }
+      handleDeleteCancel();
     };
 
     const filteredServices = services.filter(s =>
-        s.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.category.toLowerCase().includes(searchTerm.toLowerCase())
+        s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.description.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
@@ -146,9 +137,7 @@ export default function ServicesPage() {
                             <TableRow>
                                 <TableCell>Titolo</TableCell>
                                 <TableCell>Categoria</TableCell>
-                                <TableCell>Prezzo</TableCell>
-                                <TableCell>Durata (gg)</TableCell>
-                                <TableCell>Azioni</TableCell>
+                          
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -158,11 +147,10 @@ export default function ServicesPage() {
                                         sx={{ cursor: 'pointer', color: 'primary.main' }}
                                         onClick={() => navigate(`/services/${service.id}`)}
                                     >
-                                        {service.title}
+                                        {service.name}
                                     </TableCell>
-                                    <TableCell>{service.category}</TableCell>
-                                    <TableCell>{service.price} €</TableCell>
-                                    <TableCell>{service.days}</TableCell>
+                                    <TableCell>{service.description}</TableCell>
+                               
                                     <TableCell>
                                         <IconButton onClick={() => handleEdit(service)} size="small">
                                             <EditIcon fontSize="small" />
@@ -184,18 +172,17 @@ export default function ServicesPage() {
                         initialValues={newService}
                         validationSchema={ServiceSchema}
                         enableReinitialize
-                        onSubmit={(values) => {
-                            if (values.id) {
-                                setServices(prev => prev.map(s => (s.id === values.id ? { ...s, ...values } : s)));
-                            } else {
-                                const newEntry = {
-                                    ...values,
-                                    id: (services.length + 1).toString(),
-                                    createdAt: new Date().toISOString().split('T')[0],
-                                };
-                                setServices([...services, newEntry]);
-                            }
+                        onSubmit={async (values) => {
+                          try {
+                            const saved = await createOrUpdateService(values);
+                            const updated = values.id
+                              ? services.map(s => (s.id === saved.id ? saved : s))
+                              : [...services, saved];
+                            setServices(updated);
                             handleClose();
+                          } catch (error) {
+                            console.error('Errore nel salvataggio del servizio:', error);
+                          }
                         }}
                     >
                         {({ values, errors, touched, handleChange }) => (

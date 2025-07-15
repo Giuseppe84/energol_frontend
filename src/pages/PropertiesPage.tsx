@@ -1,5 +1,3 @@
-
-
 import {
   Box,
   Typography,
@@ -26,6 +24,7 @@ import { useEffect, useState } from 'react';
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
 import { useNavigate } from 'react-router-dom';
+import { fetchProperties, createOrUpdateProperty, deleteProperty } from '../api/properties';
 
 
 
@@ -33,7 +32,7 @@ interface Property {
   id: string;
   address: string;
   city: string;
-  client: string;
+  client: { firstName: string; lastName: string } | string;
   createdAt: string;
 }
 
@@ -60,22 +59,15 @@ export default function PropertiesPage() {
 
 
   useEffect(() => {
-    setProperties([
-      {
-        id: '1',
-        address: 'Via Roma 10',
-        city: 'Milano',
-        client: 'Mario Rossi',
-        createdAt: '2025-07-01',
-      },
-      {
-        id: '2',
-        address: 'Corso Torino 15',
-        city: 'Torino',
-        client: 'Giulia Verdi',
-        createdAt: '2025-06-20',
-      },
-    ]);
+    const loadProperties = async () => {
+      try {
+        const data = await fetchProperties();
+        setProperties(data);
+      } catch (error) {
+        console.error('Errore nel caricamento degli immobili:', error);
+      }
+    };
+    loadProperties();
   }, []);
 
   const handleOpen = () => setOpen(true);
@@ -105,9 +97,13 @@ export default function PropertiesPage() {
     setDeleteDialogOpen(false);
   };
 
-  const handleDeleteConfirm = () => {
-    if (propertyToDelete) {
+  const handleDeleteConfirm = async () => {
+    if (!propertyToDelete) return;
+    try {
+      await deleteProperty(propertyToDelete.id);
       setProperties(prev => prev.filter(p => p.id !== propertyToDelete.id));
+    } catch (error) {
+      console.error('Errore durante l\'eliminazione dell\'immobile:', error);
     }
     handleDeleteCancel();
   };
@@ -146,7 +142,7 @@ export default function PropertiesPage() {
               <TableRow>
                 <TableCell>Indirizzo</TableCell>
                 <TableCell>Città</TableCell>
-                <TableCell>Cliente</TableCell>
+       
                 <TableCell>Data creazione</TableCell>
                 <TableCell>Azioni</TableCell>
               </TableRow>
@@ -161,7 +157,7 @@ export default function PropertiesPage() {
   {property.address}
 </TableCell>
                   <TableCell>{property.city}</TableCell>
-                  <TableCell>{property.client}</TableCell>
+                                 
                   <TableCell>{property.createdAt}</TableCell>
                   <TableCell>
                     <IconButton onClick={() => handleEdit(property)} size="small">
@@ -183,18 +179,17 @@ export default function PropertiesPage() {
             initialValues={newProperty}
             validationSchema={PropertySchema}
             enableReinitialize
-            onSubmit={(values) => {
-              if (values.id) {
-                setProperties(prev => prev.map(p => (p.id === values.id ? { ...p, ...values } : p)));
-              } else {
-                const newEntry = {
-                  ...values,
-                  id: (properties.length + 1).toString(),
-                  createdAt: new Date().toISOString().split('T')[0],
-                };
-                setProperties([...properties, newEntry]);
+            onSubmit={async (values) => {
+              try {
+                const saved = await createOrUpdateProperty(values);
+                const updated = values.id
+                  ? properties.map(p => (p.id === saved.id ? saved : p))
+                  : [...properties, saved];
+                setProperties(updated);
+                handleClose();
+              } catch (error) {
+                console.error('Errore nel salvataggio dell\'immobile:', error);
               }
-              handleClose();
             }}
           >
             {({ values, errors, touched, handleChange }) => (

@@ -24,10 +24,13 @@ import { useEffect, useState } from 'react';
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
 import { useNavigate } from 'react-router-dom';
+import { fetchClients, createOrUpdateClient } from '../api/clients';
 
 type Client = {
   id: string;
-  name: string;
+  firstName?: string;
+  lastName?: string;
+  name?: string; // opzionale, se vuoi usarlo
   taxId: string;
   createdAt: string;
 };
@@ -48,12 +51,16 @@ export default function ClientsPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // dati mock
-    setClients([
-      { id: '1', name: 'Mario Rossi', taxId: 'RSSMRA80A01H501U', createdAt: '2025-07-01' },
-      { id: '2', name: 'Giulia Verdi', taxId: 'VRDGLI85C45H501R', createdAt: '2025-06-20' },
-      { id: '3', name: 'Alessandro Bianchi', taxId: 'BNCLSN90E10H501P', createdAt: '2025-06-10' },
-    ]);
+    const loadClients = async () => {
+      try {
+        const data = await fetchClients();
+        console.log('Fetched clients:', data);
+        setClients(data);
+      } catch (error) {
+        console.error('Errore nel caricamento dei clienti:', error);
+      }
+    };
+    loadClients();
   }, []);
 
   const handleOpen = () => setOpen(true);
@@ -85,7 +92,8 @@ export default function ClientsPage() {
   };
 
   const filteredClients = clients.filter(client =>
-    client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    client.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    client.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     client.taxId.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -129,7 +137,7 @@ export default function ClientsPage() {
                     sx={{ cursor: 'pointer', color: 'primary.main' }}
                     onClick={() => navigate(`/clients/${client.id}`)}
                   >
-                    {client.name}
+                  {client.name ?? `${client.firstName ?? ''} ${client.lastName ?? ''}`}
                   </TableCell>
                   <TableCell>{client.taxId}</TableCell>
                   <TableCell>{client.createdAt}</TableCell>
@@ -152,20 +160,17 @@ export default function ClientsPage() {
             initialValues={newClient}
             validationSchema={ClientSchema}
             enableReinitialize
-            onSubmit={(values) => {
-              if (values.id) {
-                setClients((prev) =>
-                  prev.map((c) => (c.id === values.id ? { ...c, ...values } : c))
-                );
-              } else {
-                const newEntry = {
-                  ...values,
-                  id: (clients.length + 1).toString(),
-                  createdAt: new Date().toISOString().split('T')[0],
-                };
-                setClients([...clients, newEntry]);
+            onSubmit={async (values) => {
+              try {
+                const saved = await createOrUpdateClient(values);
+                const updated = values.id
+                  ? clients.map(c => (c.id === saved.id ? saved : c))
+                  : [...clients, saved];
+                setClients(updated);
+                handleClose();
+              } catch (err) {
+                console.error('Errore nel salvataggio del cliente:', err);
               }
-              handleClose();
             }}
           >
             {({ values, errors, touched, handleChange }) => (

@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { fetchSubjectById } from '../api/subjects';
 import {
   Box,
   Typography,
@@ -14,7 +15,7 @@ type Subject = {
   firstName: string;
   lastName: string;
   taxId: string;
-  client: string;
+  client: { firstName: string; lastName: string } | string;
   createdAt: string;
 };
 
@@ -25,29 +26,19 @@ export default function SubjectDetailPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Dati mock, sostituisci con API reale
-    const mockSubjects: Subject[] = [
-      {
-        id: '1',
-        firstName: 'Luca',
-        lastName: 'Bianchi',
-        taxId: 'BNCLCU90E10H501P',
-        client: 'Mario Rossi',
-        createdAt: '2025-07-01',
-      },
-      {
-        id: '2',
-        firstName: 'Sara',
-        lastName: 'Verdi',
-        taxId: 'VRDSRA85C45H501R',
-        client: 'Giulia Verdi',
-        createdAt: '2025-06-20',
-      },
-    ];
-
-    const foundSubject = mockSubjects.find(s => s.id === id) || null;
-    setSubject(foundSubject);
-    setLoading(false);
+    const loadSubject = async () => {
+      try {
+        if (!id) return;
+        const data = await fetchSubjectById(id);
+        setSubject(data);
+      } catch (error) {
+        console.error('Errore nel caricamento del soggetto:', error);
+        setSubject(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadSubject();
   }, [id]);
 
   if (loading) return <MainLayout><CircularProgress /></MainLayout>;
@@ -74,7 +65,7 @@ export default function SubjectDetailPage() {
           Codice Fiscale: {subject.taxId}
         </Typography>
         <Typography variant="body1" sx={{ mb: 1 }}>
-          Cliente associato: {subject.client}
+          Cliente associato: {subject.client.firstName} {subject.client.lastName}
         </Typography>
         <Typography variant="body2" color="text.secondary">
           Data creazione: {subject.createdAt}

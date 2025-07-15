@@ -1,5 +1,3 @@
-
-
 import {
     Box,
     Typography,
@@ -26,6 +24,7 @@ import { useEffect, useState } from 'react';
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
 import { useNavigate } from 'react-router-dom';
+import { fetchPayments, createOrUpdatePayment, deletePayment } from '../api/payments';
 
 interface Payment {
     id: string;
@@ -60,24 +59,15 @@ export default function PaymentsPage() {
     const navigate = useNavigate();
 
     useEffect(() => {
-        setPayments([
-            {
-                id: '1',
-                subject: 'Mario Rossi',
-                service: 'Certificazione energetica',
-                amount: 250,
-                status: 'pagato',
-                createdAt: '2025-07-01',
-            },
-            {
-                id: '2',
-                subject: 'Giulia Verdi',
-                service: 'Progetto architettonico',
-                amount: 1500,
-                status: 'in sospeso',
-                createdAt: '2025-06-20',
-            },
-        ]);
+      const loadPayments = async () => {
+        try {
+          const data = await fetchPayments();
+          setPayments(data);
+        } catch (error) {
+          console.error('Errore nel caricamento dei pagamenti:', error);
+        }
+      };
+      loadPayments();
     }, []);
 
     const handleOpen = () => setOpen(true);
@@ -108,11 +98,15 @@ export default function PaymentsPage() {
         setDeleteDialogOpen(false);
     };
 
-    const handleDeleteConfirm = () => {
-        if (paymentToDelete) {
-            setPayments(prev => prev.filter(p => p.id !== paymentToDelete.id));
-        }
-        handleDeleteCancel();
+    const handleDeleteConfirm = async () => {
+      if (!paymentToDelete) return;
+      try {
+        await deletePayment(paymentToDelete.id);
+        setPayments(prev => prev.filter(p => p.id !== paymentToDelete.id));
+      } catch (error) {
+        console.error('Errore durante l\'eliminazione del pagamento:', error);
+      }
+      handleDeleteCancel();
     };
 
     const filteredPayments = payments.filter(p =>
@@ -186,18 +180,17 @@ export default function PaymentsPage() {
                         initialValues={newPayment}
                         validationSchema={PaymentSchema}
                         enableReinitialize
-                        onSubmit={(values) => {
-                            if (values.id) {
-                                setPayments(prev => prev.map(p => (p.id === values.id ? { ...p, ...values } : p)));
-                            } else {
-                                const newEntry = {
-                                    ...values,
-                                    id: (payments.length + 1).toString(),
-                                    createdAt: new Date().toISOString().split('T')[0],
-                                };
-                                setPayments([...payments, newEntry]);
-                            }
+                        onSubmit={async (values) => {
+                          try {
+                            const saved = await createOrUpdatePayment(values);
+                            const updated = values.id
+                              ? payments.map(p => (p.id === saved.id ? saved : p))
+                              : [...payments, saved];
+                            setPayments(updated);
                             handleClose();
+                          } catch (error) {
+                            console.error('Errore nel salvataggio del pagamento:', error);
+                          }
                         }}
                     >
                         {({ values, errors, touched, handleChange }) => (
