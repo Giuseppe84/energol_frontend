@@ -15,7 +15,13 @@ type Subject = {
   firstName: string;
   lastName: string;
   taxId: string;
-  client: { firstName: string; lastName: string } | string;
+  clientSubjects: {
+    client: {
+      firstName: string;
+      lastName: string;
+    };
+    isSamePerson: boolean;
+  }[];
   createdAt: string;
 };
 
@@ -64,9 +70,12 @@ export default function SubjectDetailPage() {
         <Typography variant="body1" sx={{ mb: 1 }}>
           Codice Fiscale: {subject.taxId}
         </Typography>
-        <Typography variant="body1" sx={{ mb: 1 }}>
-          Cliente associato: {subject.client.firstName} {subject.client.lastName}
-        </Typography>
+        {subject.clientSubjects.map(({ client, isSamePerson }, index) => (
+          <Typography key={index} variant="body1" sx={{ mb: 1 }}>
+            Cliente associato: {client.firstName} {client.lastName}
+            {isSamePerson && ' (stessa persona)'}
+          </Typography>
+        ))}
         <Typography variant="body2" color="text.secondary">
           Data creazione: {subject.createdAt}
         </Typography>

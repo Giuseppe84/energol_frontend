@@ -1,5 +1,3 @@
-
-
 import api from './axiosInstance';
 
 export const fetchClients = async () => {
@@ -21,7 +19,9 @@ export const createOrUpdateClient = async (client: {
   email: string;
   phone?: string;
 }) => {
-  const response = await api.put('/clients', client);
+  const response = client.id
+    ? await api.put(`/clients/${client.id}`, client)
+    : await api.post('/clients', client);
   return response.data;
 };
 

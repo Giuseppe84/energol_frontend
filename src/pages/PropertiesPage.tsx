@@ -142,7 +142,7 @@ export default function PropertiesPage() {
               <TableRow>
                 <TableCell>Indirizzo</TableCell>
                 <TableCell>Città</TableCell>
-       
+
                 <TableCell>Data creazione</TableCell>
                 <TableCell>Azioni</TableCell>
               </TableRow>
@@ -151,13 +151,13 @@ export default function PropertiesPage() {
               {filteredProperties.map(property => (
                 <TableRow key={property.id}>
                   <TableCell
-  sx={{ cursor: 'pointer', color: 'primary.main' }}
-  onClick={() => navigate(`/properties/${property.id}`)}
->
-  {property.address}
-</TableCell>
+                    sx={{ cursor: 'pointer', color: 'primary.main' }}
+                    onClick={() => navigate(`/properties/${property.id}`)}
+                  >
+                    {property.address}
+                  </TableCell>
                   <TableCell>{property.city}</TableCell>
-                                 
+
                   <TableCell>{property.createdAt}</TableCell>
                   <TableCell>
                     <IconButton onClick={() => handleEdit(property)} size="small">

@@ -16,15 +16,20 @@ import {
     DialogActions,
     TextField,
     IconButton,
+    Autocomplete,
+    FormControlLabel,
+    Switch,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import MainLayout from '../layout/MainLayout';
 import { useEffect, useState } from 'react';
+import { useAuth } from '../auth/AuthContext';
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
 import { useNavigate } from 'react-router-dom';
-import { createOrUpdateSubject, fetchSubjects } from '../api/subjects';
+import { createOrUpdateSubject, fetchSubjects, deleteSubject } from '../api/subjects';
+import { fetchClients } from '../api/clients';
 
 
 type Subject = {
@@ -32,7 +37,17 @@ type Subject = {
     firstName: string;
     lastName: string;
     taxId: string;
-    client: { firstName: string; lastName: string } | string;
+    email?: string;
+    phone?: string;
+    isSamePerson?: boolean;
+    clientSubjects?: {
+        client: {
+            firstName: string;
+            lastName: string;
+        };
+        isSamePerson: boolean;
+    }[];
+
     createdAt: string;
 };
 
@@ -40,21 +55,25 @@ const SubjectSchema = Yup.object().shape({
     firstName: Yup.string().required('Il nome è obbligatorio'),
     lastName: Yup.string().required('Il cognome è obbligatorio'),
     taxId: Yup.string().required('Il codice fiscale è obbligatorio'),
-    client: Yup.string().required('Il cliente è obbligatorio'),
 });
 
 
 
 export default function SubjectsPage() {
+    const { user } = useAuth();
     const [subjects, setSubjects] = useState<Subject[]>([]);
+    const [clients, setClients] = useState([]);
+    const [selectedClient, setSelectedClient] = useState(null);
     const [open, setOpen] = useState(false);
     const [newSubject, setNewSubject] = useState<Subject>({
         id: '',
         firstName: '',
         lastName: '',
         taxId: '',
-        client: '',
+        email: '',
+        phone: '',
         createdAt: '',
+        isSamePerson: false,
     });
     const [searchTerm, setSearchTerm] = useState('');
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -73,6 +92,14 @@ export default function SubjectsPage() {
         loadSubjects();
     }, []);
 
+    useEffect(() => {
+      const loadClients = async () => {
+        const result = await fetchClients();
+        setClients(result);
+      };
+      loadClients();
+    }, []);
+
     const handleOpen = () => setOpen(true);
     const handleClose = () => {
         setOpen(false);
@@ -81,9 +108,12 @@ export default function SubjectsPage() {
             firstName: '',
             lastName: '',
             taxId: '',
-            client: '',
+            email: '',
+            phone: '',
             createdAt: '',
+            isSamePerson: false,
         });
+        setSelectedClient(null);
     };
 
     const handleEdit = (subject: Subject) => {
@@ -101,9 +131,14 @@ export default function SubjectsPage() {
         setDeleteDialogOpen(false);
     };
 
-    const handleDeleteConfirm = () => {
+    const handleDeleteConfirm = async () => {
         if (subjectToDelete) {
-            setSubjects(prev => prev.filter(s => s.id !== subjectToDelete.id));
+            try {
+                await deleteSubject(subjectToDelete.id);
+                setSubjects(prev => prev.filter(s => s.id !== subjectToDelete.id));
+            } catch (error) {
+                console.error('Errore durante l\'eliminazione del soggetto:', error);
+            }
         }
         handleDeleteCancel();
     };
@@ -111,9 +146,7 @@ export default function SubjectsPage() {
     const filteredSubjects = subjects.filter(subject =>
         subject.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         subject.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        subject.taxId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        subject.client.firstName.toLowerCase().includes(searchTerm.toLowerCase())||
-        subject.client.lastName.toLowerCase().includes(searchTerm.toLowerCase())
+        subject.taxId.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
@@ -145,7 +178,7 @@ export default function SubjectsPage() {
                             <TableRow>
                                 <TableCell>Soggetto</TableCell>
                                 <TableCell>Codice Fiscale</TableCell>
-                                <TableCell>Cliente</TableCell>
+                                <TableCell>Clienti associati</TableCell>
                                 <TableCell>Data creazione</TableCell>
                                 <TableCell>Azioni</TableCell>
                             </TableRow>
@@ -160,7 +193,16 @@ export default function SubjectsPage() {
                                         {subject.firstName} {subject.lastName}
                                     </TableCell>
                                     <TableCell>{subject.taxId}</TableCell>
-                                    <TableCell>{subject.client.firstName} {subject.client.lastName}</TableCell>
+
+                                    <TableCell>
+                                      {subject.clientSubjects?.map(({ client, isSamePerson }, index) => (
+                                        <Typography key={index} variant="body2">
+                                          {client.firstName} {client.lastName}
+                                          {isSamePerson && ' (stessa persona)'}
+                                        </Typography>
+                                      ))}
+                                    </TableCell>
+
                                     <TableCell>{subject.createdAt}</TableCell>
                                     <TableCell>
                                         <IconButton onClick={() => handleEdit(subject)} size="small">
@@ -183,7 +225,7 @@ export default function SubjectsPage() {
                         initialValues={newSubject}
                         validationSchema={SubjectSchema}
                         enableReinitialize
-                        onSubmit={async(values) => {
+                        onSubmit={async (values) => {
                             if (values.id) {
                                 setSubjects(prev =>
                                     prev.map(s => (s.id === values.id ? { ...s, ...values } : s))
@@ -194,7 +236,10 @@ export default function SubjectsPage() {
                                         firstName: values.firstName,
                                         lastName: values.lastName,
                                         taxId: values.taxId,
-                                        clientId: 'ID_DEL_CLIENT_CORRETTO', // da ottenere dinamicamente
+                                        email: values.email,
+                                        phone: values.phone,
+                                        clientId: selectedClient?.id || '',
+                                        isSamePerson: values.isSamePerson
                                     };
 
                                     await createOrUpdateSubject(payload);
@@ -211,6 +256,52 @@ export default function SubjectsPage() {
                         {({ values, errors, touched, handleChange }) => (
                             <Form>
                                 <DialogContent>
+                                  <Autocomplete
+                                    options={clients}
+                                    getOptionLabel={(option) => `${option.firstName} ${option.lastName}`}
+                                    onChange={(event, value) => {
+                                      setSelectedClient(value);
+                                      if (value) {
+                                        setNewSubject(prev => ({
+                                          ...prev,
+                                          firstName: value.firstName,
+                                          lastName: value.lastName,
+                                          email: value.email,
+                                          phone: value.phone,
+                                          taxId: value.taxId,
+                                          isSamePerson: true
+                                        }));
+                                      } else {
+                                        setNewSubject(prev => ({
+                                          ...prev,
+                                          isSamePerson: false
+                                        }));
+                                      }
+                                    }}
+                                    renderInput={(params) => <TextField {...params} label="Associa cliente esistente" margin="dense" fullWidth />}
+                                  />
+                                  <FormControlLabel
+                                    control={
+                                      <Switch
+                                        checked={newSubject.isSamePerson}
+                                        onChange={(e) => {
+                                          const useClient = e.target.checked;
+                                          setNewSubject((prev) => ({
+                                            ...prev,
+                                            isSamePerson: useClient,
+                                            firstName: useClient ? selectedClient?.firstName || '' : '',
+                                            lastName: useClient ? selectedClient?.lastName || '' : '',
+                                            email: useClient ? selectedClient?.email || '' : '',
+                                            phone: useClient ? selectedClient?.phone || '' : '',
+                                            taxId: useClient ? selectedClient?.taxId || '' : '',
+                                          }));
+                                        }}
+                                        disabled={!selectedClient}
+                                      />
+                                    }
+                                    label="Usa i dati del cliente selezionato"
+                                    sx={{ mt: 1, mb: 2 }}
+                                  />
                                     <TextField
                                         autoFocus
                                         margin="dense"
@@ -244,13 +335,19 @@ export default function SubjectsPage() {
                                     />
                                     <TextField
                                         margin="dense"
-                                        label="Cliente"
-                                        name="client"
+                                        label="Email"
+                                        name="email"
                                         fullWidth
-                                        value={values.client}
+                                        value={values.email}
                                         onChange={handleChange}
-                                        error={touched.client && Boolean(errors.client)}
-                                        helperText={touched.client && errors.client}
+                                    />
+                                    <TextField
+                                        margin="dense"
+                                        label="Telefono"
+                                        name="phone"
+                                        fullWidth
+                                        value={values.phone}
+                                        onChange={handleChange}
                                     />
                                 </DialogContent>
                                 <DialogActions>

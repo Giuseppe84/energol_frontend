@@ -8,6 +8,7 @@ import {
   Paper,
   CircularProgress,
 } from '@mui/material';
+import { fetchClientById } from '../api/clients';
 import MainLayout from '../layout/MainLayout';
 
 type Client = {
@@ -15,6 +16,13 @@ type Client = {
   name: string;
   taxId: string;
   createdAt: string;
+  clientSubjects?: {
+    subject: {
+      firstName: string;
+      lastName: string;
+    };
+    isSamePerson: boolean;
+  }[];
 };
 
 export default function ClientDetailPage() {
@@ -24,17 +32,19 @@ export default function ClientDetailPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Qui puoi chiamare API reali per il cliente
-    // Per ora usiamo dati mock:
-    const mockClients: Client[] = [
-      { id: '1', name: 'Mario Rossi', taxId: 'RSSMRA80A01H501U', createdAt: '2025-07-01' },
-      { id: '2', name: 'Giulia Verdi', taxId: 'VRDGLI85C45H501R', createdAt: '2025-06-20' },
-      { id: '3', name: 'Alessandro Bianchi', taxId: 'BNCLSN90E10H501P', createdAt: '2025-06-10' },
-    ];
-
-    const foundClient = mockClients.find(c => c.id === id) || null;
-    setClient(foundClient);
-    setLoading(false);
+    const loadClient = async () => {
+      try {
+        if (!id) return;
+        const data = await fetchClientById(id);
+        setClient(data);
+      } catch (error) {
+        console.error('Errore nel caricamento del cliente:', error);
+        setClient(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadClient();
   }, [id]);
 
   if (loading) return <MainLayout><CircularProgress /></MainLayout>;
@@ -63,6 +73,13 @@ export default function ClientDetailPage() {
         <Typography variant="body2" color="text.secondary">
           Data creazione: {client.createdAt}
         </Typography>
+
+        {client.clientSubjects?.map(({ subject, isSamePerson }, index) => (
+          <Typography key={index} variant="body1" sx={{ mt: 1 }}>
+            Soggetto associato: {subject.firstName} {subject.lastName}
+            {isSamePerson && ' (stessa persona)'}
+          </Typography>
+        ))}
 
         <Button variant="contained" sx={{ mt: 3 }} onClick={() => navigate(-1)}>
           Torna indietro
