@@ -17,7 +17,7 @@ export const createOrUpdateService = async (service: {
   title: string;
   description: string;
   category: string;
-  price: number;
+  amount: number;
   days: number;
 }) => {
   const response = await api.put('/services', service);

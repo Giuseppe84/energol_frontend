@@ -1,7 +1,7 @@
 import api from './axiosInstance';
 
 export const fetchWorks = async () => {
-  const response = await api.get('/works');
+  const response = await api.get('/work');
   return response.data;
 };
 
@@ -12,11 +12,18 @@ export const createOrUpdateWork = async (work: {
   service: string;
   status: string;
 }) => {
-  const response = await api.put('/works', work);
+  const response = work.id
+    ? await api.put(`/work/${work.id}`, work)
+    : await api.post('/work', work);
   return response.data;
 };
 
 export const deleteWork = async (id: string) => {
-  const response = await api.delete(`/works/${id}`);
+  const response = await api.delete(`/work/${id}`);
+  return response.data;
+};
+
+export const fetchWorkById = async (id: string) => {
+  const response = await api.get(`/work/${id}`);
   return response.data;
 };

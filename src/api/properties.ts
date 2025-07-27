@@ -27,3 +27,9 @@ export const deleteProperty = async (id: string) => {
   const response = await api.delete(`/properties/${id}`);
   return response.data;
 };
+
+
+export const fetchPropertiesBySubject = async (subjectId: string) => {
+  const response = await api.get(`/properties/by-subject/${subjectId}`);
+  return response.data;
+};

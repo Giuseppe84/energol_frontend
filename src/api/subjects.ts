@@ -36,3 +36,8 @@ export const deleteSubject = async (id: string) => {
   const response = await api.delete(`/subjects/${id}`);
   return response.data;
 };
+
+export const fetchSubjectsByClient = async (clientId: string) => {
+  const response = await api.get(`/subjects/client/${clientId}`);
+  return response.data;
+};
