@@ -29,8 +29,11 @@ import { fetchServices, createOrUpdateService, deleteService } from '../api/serv
 
 interface Service {
     id: string;
-    name: string;
+    title: string;
     description: string;
+    category: string;
+    price: number;
+    days: number;
     createdAt: string;
 }
 
@@ -74,7 +77,7 @@ export default function ServicesPage() {
     const handleOpen = () => setOpen(true);
     const handleClose = () => {
         setOpen(false);
-        setNewService({ id: '', name: '', description: '',  createdAt: '' });
+        setNewService({ id: '', title: '', description: '', category: '', price: 0, days: 0, createdAt: '' });
     };
 
     const handleEdit = (service: Service) => {
@@ -100,11 +103,12 @@ export default function ServicesPage() {
       } catch (error) {
         console.error('Errore durante l\'eliminazione del servizio:', error);
       }
-      handleDeleteCancel();
+      setDeleteDialogOpen(false);
+      setServiceToDelete(null);
     };
 
     const filteredServices = services.filter(s =>
-        s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         s.description.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
@@ -112,10 +116,10 @@ export default function ServicesPage() {
         <MainLayout>
             <Box>
                 <Grid container justifyContent="space-between" alignItems="center" mb={2}>
-                    <Grid item>
+                    <Grid>
                         <Typography variant="h5">Servizi</Typography>
                     </Grid>
-                    <Grid item>
+                    <Grid>
                         <Button variant="contained" color="primary" onClick={handleOpen}>
                             Aggiungi servizio
                         </Button>
@@ -132,12 +136,14 @@ export default function ServicesPage() {
                 </Box>
 
                 <TableContainer component={Paper}>
-                    <Table size="small">
+                    <Table>
                         <TableHead>
                             <TableRow>
                                 <TableCell>Titolo</TableCell>
                                 <TableCell>Categoria</TableCell>
-                          
+                                <TableCell>Prezzo</TableCell>
+                                <TableCell>Giorni</TableCell>
+                                <TableCell>Azioni</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -147,10 +153,11 @@ export default function ServicesPage() {
                                         sx={{ cursor: 'pointer', color: 'primary.main' }}
                                         onClick={() => navigate(`/services/${service.id}`)}
                                     >
-                                        {service.name}
+                                        {service.title}
                                     </TableCell>
-                                    <TableCell>{service.description}</TableCell>
-                               
+                                    <TableCell>{service.category}</TableCell>
+                                    <TableCell>{service.price}</TableCell>
+                                    <TableCell>{service.days}</TableCell>
                                     <TableCell>
                                         <IconButton onClick={() => handleEdit(service)} size="small">
                                             <EditIcon fontSize="small" />
@@ -174,7 +181,10 @@ export default function ServicesPage() {
                         enableReinitialize
                         onSubmit={async (values) => {
                           try {
-                            const saved = await createOrUpdateService(values);
+                            // Map 'price' to 'amount' for API compatibility
+                            const { price, ...rest } = values;
+                            const apiPayload = { ...rest, amount: price };
+                            const saved = await createOrUpdateService(apiPayload);
                             const updated = values.id
                               ? services.map(s => (s.id === saved.id ? saved : s))
                               : [...services, saved];

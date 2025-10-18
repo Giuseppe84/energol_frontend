@@ -27,3 +27,9 @@ export const fetchWorkById = async (id: string) => {
   const response = await api.get(`/work/${id}`);
   return response.data;
 };
+
+export const fetchUnpaidWorks = async (clientId?: string) => {
+  const url = clientId ? `/work/unpaid?clientId=${clientId}` : '/work/unpaid';
+  const response = await api.get(url);
+  return response.data;
+};

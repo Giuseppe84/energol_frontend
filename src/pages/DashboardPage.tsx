@@ -44,28 +44,38 @@ export default function DashboardPage() {
       <Typography variant="h4" gutterBottom>
         Benvenuto nel Portale Lavori
       </Typography>
-
       <Grid container spacing={3} mt={1}>
-        <Grid item xs={12} sm={4} >
+        <Grid
+          size={{
+            xs: 12,
+            sm: 4
+          }}>
           <Paper elevation={3} sx={{ p: 2 }}>
             <Typography variant="h6">Clienti</Typography>
             <Typography variant="h4">{stats.clients}</Typography>
           </Paper>
         </Grid>
-        <Grid item xs={12} sm={4}>
+        <Grid
+          size={{
+            xs: 12,
+            sm: 4
+          }}>
           <Paper elevation={3} sx={{ p: 2 }}>
             <Typography variant="h6">Pratiche attive</Typography>
             <Typography variant="h4">{stats.activeWorks}</Typography>
           </Paper>
         </Grid>
-        <Grid item xs={12} sm={4} >
+        <Grid
+          size={{
+            xs: 12,
+            sm: 4
+          }}>
           <Paper elevation={3} sx={{ p: 2 }}>
             <Typography variant="h6">Pagamenti da ricevere</Typography>
             <Typography variant="h4">{stats.pendingPayments}</Typography>
           </Paper>
         </Grid>
       </Grid>
-
       <Box mt={4}>
         <Typography variant="h6" gutterBottom>
           Attività recenti
@@ -91,16 +101,15 @@ export default function DashboardPage() {
           </Table>
         </TableContainer>
       </Box>
-
       <Box mt={4}>
         <Typography variant="h6" gutterBottom>
           Azioni rapide
         </Typography>
         <Grid container spacing={2}>
-          <Grid item >
+          <Grid>
             <Button variant="contained" color="primary">Nuova pratica</Button>
           </Grid>
-          <Grid item >
+          <Grid>
             <Button variant="contained" color="secondary">Aggiungi cliente</Button>
           </Grid>
         </Grid>

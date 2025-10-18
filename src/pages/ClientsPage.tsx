@@ -138,10 +138,10 @@ export default function ClientsPage() {
     <MainLayout>
       <Box>
         <Grid container justifyContent="space-between" alignItems="center" mb={2}>
-          <Grid item>
+          <Grid>
             <Typography variant="h5">Clienti</Typography>
           </Grid>
-          <Grid item>
+          <Grid>
             <Button variant="contained" color="primary" onClick={handleOpen}>
               Aggiungi cliente
             </Button>
@@ -289,7 +289,7 @@ export default function ClientsPage() {
                     options={availableSubjects}
                     getOptionLabel={(option) => `${option.firstName} ${option.lastName}`}
                     value={availableSubjects.filter(subj => selectedSubjectIds.includes(subj.id))}
-                    onChange={(event, newValue) => setSelectedSubjectIds(newValue.map(v => v.id))}
+                    onChange={(_, newValue) => setSelectedSubjectIds(newValue.map(v => v.id))}
                     loading={loadingSubjects}
                     renderInput={(params) => (
                       <TextField

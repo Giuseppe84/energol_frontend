@@ -56,7 +56,11 @@ export default function WorkDetailPage() {
         </Typography>
         <Divider sx={{ mb: 2 }} />
         <Grid container spacing={2}>
-          <Grid item xs={12} md={6}>
+          <Grid
+            size={{
+              xs: 12,
+              md: 6
+            }}>
             <Typography variant="subtitle2">Descrizione</Typography>
             <Typography variant="body1" gutterBottom>
               {work.description}
@@ -87,7 +91,11 @@ export default function WorkDetailPage() {
               }[work.status ?? ''] ?? 'Non definito'}
             </Typography>
           </Grid>
-          <Grid item xs={12} md={6}>
+          <Grid
+            size={{
+              xs: 12,
+              md: 6
+            }}>
             <Typography variant="subtitle2">Cliente</Typography>
             <Typography variant="body1" gutterBottom>
               {work.client ? `${work.client.firstName} ${work.client.lastName}` : '-'}

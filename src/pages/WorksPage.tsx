@@ -9,7 +9,7 @@ import {
   TableRow,
   TableContainer,
   Paper,
-  Grid,
+Grid,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -18,9 +18,12 @@ import {
   IconButton,
   MenuItem,
 } from '@mui/material';
+
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import MainLayout from '../layout/MainLayout';
+import SubjectSearchModal from '../components/Subjects/SubjectSearchModal';
+import ClientSearchModal from '../components/Clients/ClientSearchModal';
 import { useEffect, useState } from 'react';
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
@@ -48,6 +51,9 @@ interface Work {
   subjectId: string;
   createdAt: string;
 }
+
+
+
 
 const WorkSchema = Yup.object().shape({
   description: Yup.string().required('La descrizione è obbligatoria'),
@@ -98,10 +104,77 @@ export default function WorksPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [workToDelete, setWorkToDelete] = useState<Work | null>(null);
 
-  const [clients, setClients] = useState([]);
-  const [subjects, setSubjects] = useState([]);
-  const [properties, setProperties] = useState([]);
-  const [services, setServices] = useState([]);
+  interface Subject {
+    id: string;
+    firstName: string;
+    lastName: string;
+    taxId: string;
+  }
+
+  interface Property {
+    id: string;
+    address: string;
+    city: string;
+  }
+
+  interface Service {
+    id: string;
+    name: string;
+    amount?: number;
+  }
+
+  interface Client {
+    id: string;
+    firstName: string;
+    lastName: string;
+    taxId: string;
+  }
+
+  const [clients, setClients] = useState<Client[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+
+  const [subjectModalOpen, setSubjectModalOpen] = useState(false);
+  const [selectedSubjectName, setSelectedSubjectName] = useState('');
+
+  const [clientModalOpen, setClientModalOpen] = useState(false);
+  const [selectedClientName, setSelectedClientName] = useState('');
+
+  // Funzione per aggiornare la descrizione in base a soggetto, proprietà e servizio
+  const updateDescription = (subjectId: string, propertyId: string, serviceId: string) => {
+    const subject = subjects.find(s => s.id === subjectId);
+    const property = properties.find(p => p.id === propertyId);
+    const service = services.find(s => s.id === serviceId);
+
+    if (subject && property && service) {
+      return `${subject.lastName} ${subject.firstName} - ${service.name} presso ${property.address}, ${property.city}`;
+    }
+    return '';
+  };
+
+  const handleSubjectSelect = (subject: any) => {
+    setNewWork(prev => {
+      const desc = updateDescription(subject.id, prev.propertyId, '');
+      return { ...prev, subjectId: subject.id, serviceId: '', description: desc };
+    });
+    setSelectedSubjectName(`${subject.firstName} ${subject.lastName}`);
+    setSubjectModalOpen(false);
+  };
+
+  const handleClientSelect = (client: any) => {
+    setNewWork(prev => ({
+      ...prev,
+      clientId: client.id,
+      subjectId: '',
+      serviceId: '',
+    }));
+    setSelectedClientName(`${client.firstName} ${client.lastName}`);
+    setSelectedSubjectName('');
+    setClientModalOpen(false);
+    setSubjects([]);
+    setProperties([]);
+  };
   useEffect(() => {
     const loadServices = async () => {
       const data = await fetchServices();
@@ -202,10 +275,10 @@ export default function WorksPage() {
     <MainLayout>
       <Box>
         <Grid container justifyContent="space-between" alignItems="center" mb={2}>
-          <Grid item>
+          <Grid>
             <Typography variant="h5">Pratiche</Typography>
           </Grid>
-          <Grid item>
+          <Grid>
             <Button variant="contained" color="primary" onClick={handleOpen}>
               Aggiungi pratica
             </Button>
@@ -291,7 +364,13 @@ export default function WorksPage() {
               }
 
               try {
-                const saved = await createOrUpdateWork(values);
+                await createOrUpdateWork({
+                  id: values.id || undefined,
+                  title: values.description,
+                  subject: values.subjectId,
+                  service: values.serviceId,
+                  status: values.status,
+                });
                 const refreshedWorks = await fetchWorks();
                 setWorks(refreshedWorks);
                 handleClose();
@@ -316,14 +395,11 @@ export default function WorksPage() {
                       const selectedService = services.find(s => s.id === serviceId);
                       if (selectedService) {
                         setFieldValue('amount', selectedService.amount ?? 0);
-                        const selectedSubject = subjects.find(s => s.id === values.subjectId);
-                        const selectedProperty = properties.find(p => p.id === values.propertyId);
-                        if (selectedSubject && selectedProperty) {
-                          setFieldValue(
-                            'description',
-                            `${selectedSubject.lastName} ${selectedSubject.firstName} - ${selectedService.name} presso ${selectedProperty.address}`
-                          );
-                        }
+                      }
+                      // Only update description for new work or if propertyId is set (i.e. this field is being changed)
+                      if (!newWork.id || values.propertyId) {
+                        const desc = updateDescription(values.subjectId, values.propertyId, serviceId);
+                        setFieldValue('description', desc);
                       }
                     }}
                     error={touched.serviceId && Boolean(errors.serviceId)}
@@ -335,63 +411,39 @@ export default function WorksPage() {
                       </MenuItem>
                     ))}
                   </TextField>
-                  <TextField
-                    select
-                    margin="dense"
-                    label="Cliente"
-                    name="clientId"
-                    fullWidth
-                    value={values.clientId}
-                    onChange={async e => {
-                      handleChange(e);
-                      const clientId = e.target.value;
-                      setFieldValue('subjectId', '');
-                      setFieldValue('propertyId', '');
-                      const fetchedSubjects = await fetchSubjectsByClient(clientId);
-                      setSubjects(fetchedSubjects);
-                    }}
-                    error={touched.clientId && Boolean(errors.clientId)}
-                    helperText={touched.clientId && errors.clientId}
-                  >
-                    {clients.map(client => (
-                      <MenuItem key={client.id} value={client.id}>
-                        {client.firstName} {client.lastName}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                  <TextField
-                    select
-                    margin="dense"
-                    label="Soggetto"
-                    name="subjectId"
-                    fullWidth
-                    value={values.subjectId}
-                    onChange={async e => {
-                      handleChange(e);
-                      const subjectId = e.target.value;
-                      setFieldValue('propertyId', '');
-                      const fetchedProperties = await fetchPropertiesBySubject(subjectId);
-                      setProperties(fetchedProperties);
-
-                      const selectedService = services.find(s => s.id === values.serviceId);
-                      const selectedSubject = subjects.find(s => s.id === subjectId);
-                      const selectedProperty = properties.find(p => p.id === values.propertyId);
-                      if (selectedService && selectedSubject && selectedProperty) {
-                        setFieldValue(
-                          'description',
-                          `${selectedSubject.lastName} ${selectedSubject.firstName} - ${selectedService.name} presso ${selectedProperty.address}`
-                        );
+                  <Box mt={2}>
+                    <Typography variant="subtitle2">Cliente</Typography>
+                    <Button
+                      variant="outlined"
+                      fullWidth
+                      onClick={() => setClientModalOpen(true)}
+                      disabled={Boolean(newWork.id)}
+                    >
+                      {selectedClientName ||
+                        (() => {
+                          const client = clients.find(c => c.id === newWork.clientId);
+                          return client ? `${client.firstName} ${client.lastName} - CF: ${client.taxId}` : 'Seleziona cliente';
+                        })()}
+                    </Button>
+                  </Box>
+                  <Box mt={2}>
+                    <Typography variant="subtitle2">Soggetto</Typography>
+                    <Button
+                      variant="outlined"
+                      fullWidth
+                      onClick={() => setSubjectModalOpen(true)}
+                      disabled={Boolean(newWork.id)}
+                    >
+                      {selectedSubjectName ||
+                        (() => {
+                          const subj = subjects.find(s => s.id === values.subjectId);
+                          return subj
+                            ? `${subj.firstName} ${subj.lastName} - CF: ${subj.taxId}`
+                            : 'Seleziona soggetto';
+                        })()
                       }
-                    }}
-                    error={touched.subjectId && Boolean(errors.subjectId)}
-                    helperText={touched.subjectId && errors.subjectId}
-                  >
-                    {subjects.map(subject => (
-                      <MenuItem key={subject.id} value={subject.id}>
-                        {subject.firstName} {subject.lastName}
-                      </MenuItem>
-                    ))}
-                  </TextField>
+                    </Button>
+                  </Box>
                   <TextField
                     select
                     margin="dense"
@@ -402,14 +454,10 @@ export default function WorksPage() {
                     onChange={e => {
                       handleChange(e);
                       const propertyId = e.target.value;
-                      const selectedService = services.find(s => s.id === values.serviceId);
-                      const selectedSubject = subjects.find(s => s.id === values.subjectId);
-                      const selectedProperty = properties.find(p => p.id === propertyId);
-                      if (selectedService && selectedSubject && selectedProperty) {
-                        setFieldValue(
-                          'description',
-                          `${selectedSubject.lastName} ${selectedSubject.firstName} - ${selectedService.name} per immobile in ${selectedProperty.address}`
-                        );
+                      // Only update description for new work or if serviceId is set (i.e. this field is being changed)
+                      if (!newWork.id || values.serviceId) {
+                        const desc = updateDescription(values.subjectId, propertyId, values.serviceId);
+                        setFieldValue('description', desc);
                       }
                     }}
                     error={touched.propertyId && Boolean(errors.propertyId)}
@@ -434,7 +482,11 @@ export default function WorksPage() {
                     helperText={touched.description && errors.description}
                   />
                   <Grid container spacing={2}>
-                    <Grid item xs={12} sm={6}>
+                    <Grid
+                      size={{
+                        xs: 12,
+                        sm: 6
+                      }}>
                       <TextField
                         margin="dense"
                         label="Data acquisizione"
@@ -448,7 +500,11 @@ export default function WorksPage() {
                         helperText={touched.acquisitionDate && errors.acquisitionDate}
                       />
                     </Grid>
-                    <Grid item xs={12} sm={6}>
+                    <Grid
+                      size={{
+                        xs: 12,
+                        sm: 6
+                      }}>
                       <TextField
                         select
                         margin="dense"
@@ -465,7 +521,11 @@ export default function WorksPage() {
                       </TextField>
                     </Grid>
                     {values.status === 'COMPLETED' && (
-                      <Grid item xs={12} sm={6}>
+                      <Grid
+                        size={{
+                          xs: 12,
+                          sm: 6
+                        }}>
                         <TextField
                           margin="dense"
                           label="Data completamento"
@@ -480,8 +540,7 @@ export default function WorksPage() {
                         />
                       </Grid>
                     )}
-     </Grid>
-                    <Grid item xs={12} sm={12}>
+                    <Grid size={12}>
                       <TextField
                         margin="dense"
                         label="Importo"
@@ -496,7 +555,7 @@ export default function WorksPage() {
                           startAdornment: <span style={{ marginRight: 4 }}>€</span>,
                         }}
                       />
-                
+                    </Grid>
                   </Grid>
                 </DialogContent>
 
@@ -523,6 +582,17 @@ export default function WorksPage() {
           </DialogActions>
         </Dialog>
       </Box>
+      <SubjectSearchModal
+        clientId={newWork.clientId}
+        open={subjectModalOpen}
+        onClose={() => setSubjectModalOpen(false)}
+        onSelect={handleSubjectSelect}
+      />
+      <ClientSearchModal
+        open={clientModalOpen}
+        onClose={() => setClientModalOpen(false)}
+        onSelect={handleClientSelect}
+      />
     </MainLayout>
   );
 }

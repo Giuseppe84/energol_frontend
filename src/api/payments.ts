@@ -16,8 +16,15 @@ export const createOrUpdatePayment = async (payment: {
   service: string;
   amount: number;
   status: string;
+  paymentMethod?: string;
+  paymentStatus?: string;
 }) => {
-  const response = await api.put('/payments', payment);
+  let response;
+  if (payment.id) {
+    response = await api.put(`/payments/${payment.id}`, payment);
+  } else {
+    response = await api.post('/payments', payment);
+  }
   return response.data;
 };
 

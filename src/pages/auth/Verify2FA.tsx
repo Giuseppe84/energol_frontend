@@ -19,7 +19,7 @@ const Verify2FA = () => {
         initialValues={{ token: "" }}
         onSubmit={async (values, { setSubmitting }) => {
           try {
-            const res = await axios.post(
+            await axios.post(
               `${backendUrl}/auth/2fa/verify`,
               { token: values.token },
               {

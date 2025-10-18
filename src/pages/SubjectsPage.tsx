@@ -24,7 +24,6 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import MainLayout from '../layout/MainLayout';
 import { useEffect, useState } from 'react';
-import { useAuth } from '../auth/AuthContext';
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
 import { useNavigate } from 'react-router-dom';
@@ -60,10 +59,18 @@ const SubjectSchema = Yup.object().shape({
 
 
 export default function SubjectsPage() {
-    const { user } = useAuth();
     const [subjects, setSubjects] = useState<Subject[]>([]);
-    const [clients, setClients] = useState([]);
-    const [selectedClient, setSelectedClient] = useState(null);
+    type Client = {
+        id: string;
+        firstName: string;
+        lastName: string;
+        email?: string;
+        phone?: string;
+        taxId: string;
+    };
+    
+    const [clients, setClients] = useState<Client[]>([]);
+    const [selectedClient, setSelectedClient] = useState<Client | null>(null);
     const [open, setOpen] = useState(false);
     const [newSubject, setNewSubject] = useState<Subject>({
         id: '',
@@ -153,10 +160,10 @@ export default function SubjectsPage() {
         <MainLayout>
             <Box>
                 <Grid container justifyContent="space-between" alignItems="center" mb={2}>
-                    <Grid item>
+                    <Grid>
                         <Typography variant="h5">Soggetti</Typography>
                     </Grid>
-                    <Grid item>
+                    <Grid>
                         <Button variant="contained" color="primary" onClick={handleOpen}>
                             Aggiungi soggetto
                         </Button>
@@ -258,8 +265,8 @@ export default function SubjectsPage() {
                                 <DialogContent>
                                   <Autocomplete
                                     options={clients}
-                                    getOptionLabel={(option) => `${option.firstName} ${option.lastName}`}
-                                    onChange={(event, value) => {
+                                    getOptionLabel={(option: any) => `${option.firstName} ${option.lastName}`}
+                                    onChange={(_, value) => {
                                       setSelectedClient(value);
                                       if (value) {
                                         setNewSubject(prev => ({

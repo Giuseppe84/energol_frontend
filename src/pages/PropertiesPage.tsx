@@ -16,27 +16,21 @@ import {
   DialogActions,
   TextField,
   IconButton,
-  Select,
-  MenuItem,
-  InputLabel,
-  FormControl,
   FormHelperText,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import MainLayout from '../layout/MainLayout';
 import { useEffect, useState } from 'react';
-import { Formik, Form, Field } from 'formik';
+import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
 import { useNavigate } from 'react-router-dom';
 import { fetchProperties, createOrUpdateProperty, deleteProperty } from '../api/properties';
+import { fetchSubjects } from '../api/subjects';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
+import SubjectSearchModal from '../components/Subjects/SubjectSearchModal';
 
-interface Client {
-  id: string;
-  name: string;
-}
 
 interface Property {
   id: string;
@@ -55,16 +49,7 @@ interface Property {
 const PropertySchema = Yup.object().shape({
   address: Yup.string().required('Indirizzo obbligatorio'),
   city: Yup.string().required('Città obbligatoria'),
-  client: Yup.mixed().test(
-    'client-required',
-    'Cliente obbligatorio',
-    value => {
-      if (!value) return false;
-      if (typeof value === 'string') return value.trim() !== '';
-      if (typeof value === 'object' && value !== null) return !!value.id && !!value.name;
-      return false;
-    }
-  ),
+  subjectId: Yup.string().required('Soggetto obbligatorio'),
 });
 
 export default function PropertiesPage() {
@@ -86,21 +71,19 @@ export default function PropertiesPage() {
   });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [propertyToDelete, setPropertyToDelete] = useState<Property | null>(null);
+  const [subjectModalOpen, setSubjectModalOpen] = useState(false);
   const navigate = useNavigate();
 
   // Placeholder clients list - if you have a real list, fetch it and replace this
-  const clientsList: Client[] = [
-    { id: '1', name: 'Mario Rossi' },
-    { id: '2', name: 'Luca Bianchi' },
-    { id: '3', name: 'Anna Verdi' },
-  ];
 
   const [subjectsList, setSubjectsList] = useState<{ id: string; firstName: string; lastName: string }[]>([]);
   useEffect(() => {
     const loadSubjects = async () => {
       try {
-        const response = await fetch(`/api/subjects`);
+        const response = await fetchSubjects();
+           console.log('Soggetti caricati:', response);
         const data = await response.json();
+       
         setSubjectsList(data);
       } catch (error) {
         console.error('Errore nel caricamento dei soggetti:', error);
@@ -113,6 +96,7 @@ export default function PropertiesPage() {
     const loadProperties = async () => {
       try {
         const data = await fetchProperties();
+        console.log('Immobili caricati:', data);
         setProperties(data);
       } catch (error) {
         console.error('Errore nel caricamento degli immobili:', error);
@@ -167,19 +151,19 @@ export default function PropertiesPage() {
 
   const filteredProperties = properties.filter(p =>
     p.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (typeof p.client === 'string'
-      ? p.client.toLowerCase().includes(searchTerm.toLowerCase())
-      : p.client.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    p.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (subjectsList.find(s => s.id === p.subjectId)?.lastName.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (subjectsList.find(s => s.id === p.subjectId)?.firstName.toLowerCase() || '').includes(searchTerm.toLowerCase())
   );
 
   return (
     <MainLayout>
       <Box>
         <Grid container justifyContent="space-between" alignItems="center" mb={2}>
-          <Grid item>
+          <Grid>
             <Typography variant="h5">Immobili</Typography>
           </Grid>
-          <Grid item>
+          <Grid>
             <Button variant="contained" color="primary" onClick={handleOpen}>
               Aggiungi immobile
             </Button>
@@ -201,7 +185,7 @@ export default function PropertiesPage() {
               <TableRow>
                 <TableCell>Indirizzo</TableCell>
                 <TableCell>Città</TableCell>
-                <TableCell>Cliente</TableCell>
+                <TableCell>Soggetto</TableCell>
                 <TableCell>Data creazione</TableCell>
                 <TableCell>Azioni</TableCell>
               </TableRow>
@@ -217,9 +201,10 @@ export default function PropertiesPage() {
                   </TableCell>
                   <TableCell>{property.city}</TableCell>
                   <TableCell>
-                    {typeof property.client === 'string'
-                      ? property.client
-                      : property.client.name}
+                    {(() => {
+                      const subject = subjectsList.find(s => s.id === property.subjectId);
+                      return subject ? `${subject.lastName} ${subject.firstName}` : '';
+                    })()}
                   </TableCell>
                   <TableCell>
                     {property.createdAt
@@ -248,20 +233,10 @@ export default function PropertiesPage() {
             enableReinitialize
             onSubmit={async (values) => {
               try {
-                // Normalize client to object if string matches a client id or name
-                let clientValue = values.client;
-                if (typeof clientValue === 'string') {
-                  const foundClient = clientsList.find(
-                    c =>
-                      c.id === clientValue ||
-                      c.name.toLowerCase() === clientValue.toLowerCase()
-                  );
-                  if (foundClient) {
-                    clientValue = foundClient;
-                  }
-                }
-                const toSave = { ...values, client: clientValue };
-                const saved = await createOrUpdateProperty(toSave);
+                const saved = await createOrUpdateProperty({
+                  ...values,
+                  clientId: values.subjectId, // Map subjectId to clientId as required by API
+                });
                 const updated = values.id
                   ? properties.map(p => (p.id === saved.id ? saved : p))
                   : [...properties, saved];
@@ -272,7 +247,7 @@ export default function PropertiesPage() {
               }
             }}
           >
-            {({ values, errors, touched, handleChange, setFieldValue }) => (
+            {({ values, errors, touched, handleChange }) => (
               <Form>
                 <DialogContent>
                   <TextField
@@ -348,62 +323,26 @@ export default function PropertiesPage() {
                     value={values.longitude}
                     onChange={handleChange}
                   />
-                  <FormControl
-                    fullWidth
-                    margin="dense"
-                    error={touched.client && Boolean(errors.client)}
-                  >
-                    <InputLabel id="client-label">Cliente</InputLabel>
-                    <Select
-                      labelId="client-label"
-                      id="client"
-                      name="client"
-                      value={
-                        typeof values.client === 'string'
-                          ? values.client
-                          : values.client?.id || ''
-                      }
-                      label="Cliente"
-                      onChange={e => {
-                        const selectedId = e.target.value;
-                        const selectedClient = clientsList.find(c => c.id === selectedId);
-                        if (selectedClient) {
-                          setFieldValue('client', selectedClient);
-                        } else {
-                          setFieldValue('client', '');
-                        }
-                      }}
-                    >
-                      {clientsList.map(client => (
-                        <MenuItem key={client.id} value={client.id}>
-                          {client.name}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    {touched.client && errors.client && (
-                      <FormHelperText>{errors.client}</FormHelperText>
-                    )}
-                  </FormControl>
-                  <FormControl fullWidth margin="dense">
-                    <InputLabel id="subject-label">Soggetto</InputLabel>
-                    <Select
-                      labelId="subject-label"
-                      id="subjectId"
-                      name="subjectId"
-                      value={values.subjectId}
+                  <Box display="flex" gap={1} alignItems="center" mt={2}>
+                    <TextField
                       label="Soggetto"
-                      onChange={handleChange}
-                    >
-                      <MenuItem value="">
-                        <em>Seleziona soggetto</em>
-                      </MenuItem>
-                      {subjectsList.map(subject => (
-                        <MenuItem key={subject.id} value={subject.id}>
-                          {subject.lastName} {subject.firstName}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+                      value={
+                        subjectsList.find(s => s.id === values.subjectId)
+                          ? `${subjectsList.find(s => s.id === values.subjectId)?.lastName} ${subjectsList.find(s => s.id === values.subjectId)?.firstName}`
+                          : ''
+                      }
+                      fullWidth
+                      InputProps={{
+                        readOnly: true,
+                      }}
+                    />
+                    <Button variant="outlined" onClick={() => setSubjectModalOpen(true)}>
+                      Cerca
+                    </Button>
+                  </Box>
+                  {touched.subjectId && errors.subjectId && (
+                    <FormHelperText error>{errors.subjectId}</FormHelperText>
+                  )}
                 </DialogContent>
                 <DialogActions>
                   <Button onClick={handleClose}>Annulla</Button>
@@ -426,6 +365,16 @@ export default function PropertiesPage() {
             </Button>
           </DialogActions>
         </Dialog>
+
+        <SubjectSearchModal
+          open={subjectModalOpen}
+          onClose={() => setSubjectModalOpen(false)}
+          onSelect={(subject) => {
+            setNewProperty(prev => ({ ...prev, subjectId: subject.id }));
+            setSubjectModalOpen(false);
+          }}
+          clientId={newProperty.id || ''}
+        />
       </Box>
     </MainLayout>
   );
