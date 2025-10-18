@@ -11,6 +11,9 @@ import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { useParams, useNavigate } from 'react-router-dom';
 import { fetchWorkById } from '../api/works';
+import MainLayout from '../layout/MainLayout';
+
+
 
 interface WorkDetail {
   id: string;
@@ -46,6 +49,7 @@ export default function WorkDetailPage() {
   }
 
   return (
+    <MainLayout>
     <Box p={2}>
       <Button variant="outlined" onClick={() => navigate(-1)} sx={{ mb: 2 }}>
         Torna indietro
@@ -116,5 +120,6 @@ export default function WorkDetailPage() {
         </Grid>
       </Paper>
     </Box>
+    </MainLayout>
   );
 }

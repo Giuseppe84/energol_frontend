@@ -29,20 +29,16 @@ import { fetchServices, createOrUpdateService, deleteService } from '../api/serv
 
 interface Service {
     id: string;
-    title: string;
+    name: string;
     description: string;
-    category: string;
-    price: number;
-    days: number;
+    amount: number;
     createdAt: string;
 }
 
 const ServiceSchema = Yup.object().shape({
-    title: Yup.string().required('Il titolo è obbligatorio'),
+    name: Yup.string().required('Il nome è obbligatorio'),
     description: Yup.string().required('La descrizione è obbligatoria'),
-    category: Yup.string().required('La categoria è obbligatoria'),
-    price: Yup.number().required('Prezzo obbligatorio'),
-    days: Yup.number().required('Durata in giorni obbligatoria'),
+    amount: Yup.number().required('Prezzo obbligatorio'),
 });
 
 export default function ServicesPage() {
@@ -51,11 +47,9 @@ export default function ServicesPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [newService, setNewService] = useState<Service>({
         id: '',
-        title: '',
+        name: '',
         description: '',
-        category: '',
-        price: 0,
-        days: 0,
+        amount: 0,
         createdAt: '',
     });
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -77,7 +71,7 @@ export default function ServicesPage() {
     const handleOpen = () => setOpen(true);
     const handleClose = () => {
         setOpen(false);
-        setNewService({ id: '', title: '', description: '', category: '', price: 0, days: 0, createdAt: '' });
+        setNewService({ id: '', name: '', description: '', amount: 0, createdAt: '' });
     };
 
     const handleEdit = (service: Service) => {
@@ -108,8 +102,8 @@ export default function ServicesPage() {
     };
 
     const filteredServices = services.filter(s =>
-        s.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.description.toLowerCase().includes(searchTerm.toLowerCase())
+        (s.name?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()) ||
+        (s.description?.toLowerCase() ?? '').includes(searchTerm.toLowerCase())
     );
 
     return (
@@ -139,10 +133,9 @@ export default function ServicesPage() {
                     <Table>
                         <TableHead>
                             <TableRow>
-                                <TableCell>Titolo</TableCell>
-                                <TableCell>Categoria</TableCell>
+                                <TableCell>Nome</TableCell>
+                                <TableCell>Descrizione</TableCell>
                                 <TableCell>Prezzo</TableCell>
-                                <TableCell>Giorni</TableCell>
                                 <TableCell>Azioni</TableCell>
                             </TableRow>
                         </TableHead>
@@ -153,11 +146,10 @@ export default function ServicesPage() {
                                         sx={{ cursor: 'pointer', color: 'primary.main' }}
                                         onClick={() => navigate(`/services/${service.id}`)}
                                     >
-                                        {service.title}
+                                        {service.name}
                                     </TableCell>
-                                    <TableCell>{service.category}</TableCell>
-                                    <TableCell>{service.price}</TableCell>
-                                    <TableCell>{service.days}</TableCell>
+                                    <TableCell>{service.description}</TableCell>
+                                    <TableCell>{service.amount}</TableCell>
                                     <TableCell>
                                         <IconButton onClick={() => handleEdit(service)} size="small">
                                             <EditIcon fontSize="small" />
@@ -181,10 +173,8 @@ export default function ServicesPage() {
                         enableReinitialize
                         onSubmit={async (values) => {
                           try {
-                            // Map 'price' to 'amount' for API compatibility
-                            const { price, ...rest } = values;
-                            const apiPayload = { ...rest, amount: price };
-                            const saved = await createOrUpdateService(apiPayload);
+                            // Map 'amount' for API compatibility
+                            const saved = await createOrUpdateService(values );
                             const updated = values.id
                               ? services.map(s => (s.id === saved.id ? saved : s))
                               : [...services, saved];
@@ -201,13 +191,13 @@ export default function ServicesPage() {
                                     <TextField
                                         autoFocus
                                         margin="dense"
-                                        label="Titolo"
-                                        name="title"
+                                        label="Nome"
+                                        name="name"
                                         fullWidth
-                                        value={values.title}
+                                        value={values.name}
                                         onChange={handleChange}
-                                        error={touched.title && Boolean(errors.title)}
-                                        helperText={touched.title && errors.title}
+                                        error={touched.name && Boolean(errors.name)}
+                                        helperText={touched.name && errors.name}
                                     />
                                     <TextField
                                         margin="dense"
@@ -221,35 +211,14 @@ export default function ServicesPage() {
                                     />
                                     <TextField
                                         margin="dense"
-                                        label="Categoria"
-                                        name="category"
-                                        fullWidth
-                                        value={values.category}
-                                        onChange={handleChange}
-                                        error={touched.category && Boolean(errors.category)}
-                                        helperText={touched.category && errors.category}
-                                    />
-                                    <TextField
-                                        margin="dense"
                                         label="Prezzo (€)"
-                                        name="price"
+                                        name="amount"
                                         type="number"
                                         fullWidth
-                                        value={values.price}
+                                        value={values.amount}
                                         onChange={handleChange}
-                                        error={touched.price && Boolean(errors.price)}
-                                        helperText={touched.price && errors.price}
-                                    />
-                                    <TextField
-                                        margin="dense"
-                                        label="Giorni previsti"
-                                        name="days"
-                                        type="number"
-                                        fullWidth
-                                        value={values.days}
-                                        onChange={handleChange}
-                                        error={touched.days && Boolean(errors.days)}
-                                        helperText={touched.days && errors.days}
+                                        error={touched.amount && Boolean(errors.amount)}
+                                        helperText={touched.amount && errors.amount}
                                     />
                                 </DialogContent>
                                 <DialogActions>
@@ -265,7 +234,7 @@ export default function ServicesPage() {
                 <Dialog open={deleteDialogOpen} onClose={handleDeleteCancel}>
                     <DialogTitle>Conferma eliminazione</DialogTitle>
                     <DialogContent>
-                        Sei sicuro di voler eliminare il servizio "{serviceToDelete?.title}"?
+                        Sei sicuro di voler eliminare il servizio "{serviceToDelete?.name}"?
                     </DialogContent>
                     <DialogActions>
                         <Button onClick={handleDeleteCancel}>Annulla</Button>

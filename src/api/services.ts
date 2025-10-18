@@ -20,7 +20,12 @@ export const createOrUpdateService = async (service: {
   amount: number;
   days: number;
 }) => {
-  const response = await api.put('/services', service);
+  let response;
+  if (service.id) {
+    response = await api.put(`/services/${service.id}`, service);
+  } else {
+    response = await api.post('/services', service);
+  }
   return response.data;
 };
 

@@ -275,7 +275,10 @@ export default function PaymentsPage() {
             <TableBody>
               {filteredPayments.map(payment => (
                 <TableRow key={payment.id}>
-                  <TableCell>
+                  <TableCell
+                    sx={{ cursor: 'pointer', color: 'primary.main' }}
+                    onClick={() => navigate(`/payments/${payment.id}`)}
+                  >
                     {clients.find(c => c.id === payment.clientId)?.firstName ?? '—'}
                   </TableCell>
                   <TableCell>{payment.amount}</TableCell>
@@ -346,7 +349,7 @@ export default function PaymentsPage() {
                             <TableCell>Seleziona</TableCell>
                             <TableCell>Descrizione</TableCell>
                             <TableCell>Importo (€)</TableCell>
-                             <TableCell>Importo pagato</TableCell>
+                            <TableCell>Importo pagato</TableCell>
                             <TableCell>Importo da saldare</TableCell>
                           </TableRow>
                         </TableHead>

@@ -1,85 +1,136 @@
-import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
-  Button,
   Paper,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  Button,
   CircularProgress,
 } from '@mui/material';
 import MainLayout from '../layout/MainLayout';
+import { fetchPaymentById } from '../api/payments';
+import { fetchClients } from '../api/clients';
 
-
-type Payment = {
+interface Work {
   id: string;
-  subject: string;
-  service: string;
+  description?: string;
+  amount?: number;
+  paymentStatus?: string;
+  amountPaid?: number;
+}
+
+interface Payment {
+  id: string;
   amount: number;
-  status: string;
+  paymentMethod: string;
+  paymentStatus: string;
+  clientId: string;
+  works: Work[];
   createdAt: string;
-};
+}
 
 export default function PaymentDetailPage() {
-  const { id } = useParams<{ id: string }>();
+  const { id } = useParams();
   const navigate = useNavigate();
   const [payment, setPayment] = useState<Payment | null>(null);
+  const [clientName, setClientName] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const mockPayments: Payment[] = [
-      {
-        id: '1',
-        subject: 'Mario Rossi',
-        service: 'Certificazione energetica',
-        amount: 250,
-        status: 'pagato',
-        createdAt: '2025-07-01',
-      },
-      {
-        id: '2',
-        subject: 'Giulia Verdi',
-        service: 'Progetto architettonico',
-        amount: 1500,
-        status: 'in sospeso',
-        createdAt: '2025-06-20',
-      },
-    ];
+    const loadPayment = async () => {
+      try {
+        const payment = await fetchPaymentById(id!);
+  
+        if (payment) setPayment(payment);
 
-    const found = mockPayments.find(p => p.id === id) || null;
-    setPayment(found);
-    setLoading(false);
+        const clients = await fetchClients();
+        const client = clients.find((c: any) => c.id === payment?.clientId);
+        if (client) setClientName(`${client.firstName} ${client.lastName}`);
+      } catch (error) {
+        console.error('Errore nel caricamento del pagamento:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadPayment();
   }, [id]);
 
-  if (loading) return <MainLayout><CircularProgress /></MainLayout>;
-  if (!payment)
+  if (loading) {
     return (
       <MainLayout>
-        <Box mt={4}>
-          <Typography variant="h6" color="error">Pagamento non trovato.</Typography>
-          <Button variant="contained" onClick={() => navigate(-1)} sx={{ mt: 2 }}>
-            Torna indietro
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+          <CircularProgress />
+        </Box>
+      </MainLayout>
+    );
+  }
+
+  if (!payment) {
+    return (
+      <MainLayout>
+        <Typography variant="h6" color="error" align="center">
+          Pagamento non trovato
+        </Typography>
+        <Box textAlign="center" mt={2}>
+          <Button variant="contained" onClick={() => navigate('/payments')}>
+            Torna ai pagamenti
           </Button>
         </Box>
       </MainLayout>
     );
+  }
 
   return (
     <MainLayout>
-      <Box mt={4} p={3} component={Paper} maxWidth={600} mx="auto">
-        <Typography variant="h4" gutterBottom>
-          Dettaglio Pagamento
-        </Typography>
-        <Typography variant="h6">Soggetto: {payment.subject}</Typography>
-        <Typography variant="body1">Servizio: {payment.service}</Typography>
-        <Typography variant="body1">Importo: {payment.amount} €</Typography>
-        <Typography variant="body1">Stato: {payment.status}</Typography>
-        <Typography variant="body2" color="text.secondary">
-          Data creazione: {payment.createdAt}
-        </Typography>
+      <Box>
+        <Typography variant="h5" gutterBottom>Dettaglio Pagamento</Typography>
+        <Paper sx={{ p: 3, mb: 3 }}>
+          <Typography><strong>ID:</strong> {payment.id}</Typography>
+          <Typography><strong>Cliente:</strong> {clientName}</Typography>
+          <Typography><strong>Importo totale:</strong> €{payment.amount}</Typography>
+          <Typography><strong>Metodo di pagamento:</strong> {payment.paymentMethod}</Typography>
+          <Typography><strong>Stato pagamento:</strong> {payment.paymentStatus}</Typography>
+          <Typography><strong>Data creazione:</strong> {new Date(payment.createdAt).toLocaleString()}</Typography>
+        </Paper>
 
-        <Button variant="contained" sx={{ mt: 3 }} onClick={() => navigate(-1)}>
-          Torna indietro
-        </Button>
+        <Typography variant="h6" gutterBottom>Lavori associati</Typography>
+        <Table component={Paper} size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell>Descrizione</TableCell>
+              <TableCell>Importo (€)</TableCell>
+              <TableCell>Importo pagato (€)</TableCell>
+              <TableCell>Stato</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {payment.works?.length ? (
+              payment.works.map(work => (
+                <TableRow key={work.id}>
+                  <TableCell>{work.description ?? '—'}</TableCell>
+                  <TableCell>{work.amount ?? '—'}</TableCell>
+                  <TableCell>{work.amountPaid ?? 0}</TableCell>
+                  <TableCell>{work.paymentStatus ?? '—'}</TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={4} align="center">Nessun lavoro associato</TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+
+        <Box mt={3}>
+          <Button variant="outlined" onClick={() => navigate('/payments')}>
+            Torna ai pagamenti
+          </Button>
+        </Box>
       </Box>
     </MainLayout>
   );
