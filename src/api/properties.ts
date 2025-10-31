@@ -33,3 +33,20 @@ export const fetchPropertiesBySubject = async (subjectId: string) => {
   const response = await api.get(`/properties/by-subject/${subjectId}`);
   return response.data;
 };
+
+
+// API to fetch properties by location (latitude, longitude, radius)
+export const getPropertiesByLocation = async (
+  latitude: number,
+  longitude: number,
+  radius: number
+) => {
+  const response = await api.post('/properties/location', 
+    {
+      latitude,
+      longitude,
+      radius,
+    },
+  );
+  return response.data;
+};

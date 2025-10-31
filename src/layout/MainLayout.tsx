@@ -18,6 +18,7 @@ const navItems = [
     { label: 'Pagamenti', path: '/payments' },
     { label: 'Servizi', path: '/services' },
    { label: 'Immobili', path: '/properties' },
+    { label: 'Mappa', path: '/property-map' },
 ];
 
 type MainLayoutProps = {

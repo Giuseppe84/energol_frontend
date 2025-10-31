@@ -18,6 +18,7 @@ import PropertiesPage from './pages/PropertiesPage';
 import SubjectDetailPage from './pages/SubjectDetailPage';
 import PaymentDetailPage from './pages/PaymentDetailPage';
 import PropertyDetailPage from './pages/PropertyDetailPage';
+import PropertyMap from './pages/PropertyMap';
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
           <Route path="/payments" element={<PaymentsPage />} />
           <Route path="/properties/:id" element={<PropertyDetailPage />} />
           <Route path="/properties" element={<PropertiesPage />} />
+          <Route path="/property-map" element={<PropertyMap />} />
           <Route
             path="/"
             element={
