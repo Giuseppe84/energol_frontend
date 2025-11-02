@@ -105,7 +105,7 @@ export default function ServiceDetailPage() {
           <TableBody>
             {service.works?.length ? (
               service.works.map(work => (
-                <TableRow key={wosrk.id}>
+                <TableRow key={work.id}>
                   <TableCell>{work.description}</TableCell>
                   <TableCell>{work.amount}</TableCell>
                   <TableCell>{work.paymentStatus ?? '—'}</TableCell>

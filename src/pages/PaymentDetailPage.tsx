@@ -21,16 +21,21 @@ interface Work {
   description?: string;
   amount?: number;
   paymentStatus?: string;
-  amountPaid?: number;
+}
+
+interface WorkPayment {
+  workId: string;
+  amountPaid: number;
+  work: Work;
 }
 
 interface Payment {
   id: string;
   amount: number;
-  paymentMethod: string;
-  paymentStatus: string;
+  method: string;
+  status: string;
   clientId: string;
-  works: Work[];
+  workPayments: WorkPayment[];
   createdAt: string;
 }
 
@@ -93,8 +98,8 @@ export default function PaymentDetailPage() {
           <Typography><strong>ID:</strong> {payment.id}</Typography>
           <Typography><strong>Cliente:</strong> {clientName}</Typography>
           <Typography><strong>Importo totale:</strong> €{payment.amount}</Typography>
-          <Typography><strong>Metodo di pagamento:</strong> {payment.paymentMethod}</Typography>
-          <Typography><strong>Stato pagamento:</strong> {payment.paymentStatus}</Typography>
+          <Typography><strong>Metodo di pagamento:</strong> {payment.method}</Typography>
+          <Typography><strong>Stato pagamento:</strong> {payment.status}</Typography>
           <Typography><strong>Data creazione:</strong> {new Date(payment.createdAt).toLocaleString()}</Typography>
         </Paper>
 
@@ -109,13 +114,13 @@ export default function PaymentDetailPage() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {payment.works?.length ? (
-              payment.works.map(work => (
-                <TableRow key={work.id}>
-                  <TableCell>{work.description ?? '—'}</TableCell>
-                  <TableCell>{work.amount ?? '—'}</TableCell>
-                  <TableCell>{work.amountPaid ?? 0}</TableCell>
-                  <TableCell>{work.paymentStatus ?? '—'}</TableCell>
+            {payment.workPayments?.length ? (
+              payment.workPayments.map((wp) => (
+                <TableRow key={wp.workId}>
+                  <TableCell>{wp.work.description ?? '—'}</TableCell>
+                  <TableCell>{wp.work.amount ?? '—'}</TableCell>
+                  <TableCell>{wp.amountPaid ?? 0}</TableCell>
+                  <TableCell>{wp.work.paymentStatus ?? '—'}</TableCell>
                 </TableRow>
               ))
             ) : (
